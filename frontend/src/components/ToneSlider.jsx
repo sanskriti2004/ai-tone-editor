@@ -141,22 +141,16 @@ export default function ToneSlider() {
               0,
               0
             )}`}
-          >
-            <span className="text-xs absolute top-3 left-3">
-              Prof. & Concise
-            </span>
-          </div>
+          ></div>
           <div
             className={`border-r border-b border-gray-300 ${getCellHighlight(
               1,
               0
             )}`}
           ></div>
-          <div className={`border-b border-gray-300 ${getCellHighlight(2, 0)}`}>
-            <span className="text-xs absolute top-3 right-3">
-              Prof. & Expanded
-            </span>
-          </div>
+          <div
+            className={`border-b border-gray-300 ${getCellHighlight(2, 0)}`}
+          ></div>
 
           {/* Middle row */}
           <div
@@ -176,19 +170,13 @@ export default function ToneSlider() {
           ></div>
 
           {/* Bottom row - Casual */}
-          <div className={`border-r border-gray-300 ${getCellHighlight(0, 2)}`}>
-            <span className="text-xs absolute bottom-3 left-3">
-              Casual & Concise
-            </span>
-          </div>
+          <div
+            className={`border-r border-gray-300 ${getCellHighlight(0, 2)}`}
+          ></div>
           <div
             className={`border-r border-gray-300 ${getCellHighlight(1, 2)}`}
           ></div>
-          <div className={`${getCellHighlight(2, 2)}`}>
-            <span className="text-xs absolute bottom-3 right-3">
-              Casual & Expanded
-            </span>
-          </div>
+          <div className={`${getCellHighlight(2, 2)}`}></div>
         </div>
 
         {/* Circle representing tone adjustment */}
@@ -201,16 +189,32 @@ export default function ToneSlider() {
         />
 
         {/* Labels */}
-        <div className="absolute top-2 left-1/2 -translate-x-1/2 text-xs font-medium">
+        <div
+          className={`absolute top-2 left-1/2 -translate-x-1/2 text-xs font-medium transition-colors duration-150 ${
+            position.y < 33.33 ? "text-gray-900" : "text-gray-400 "
+          }`}
+        >
           Professional
         </div>
-        <div className="absolute bottom-2 left-1/2 -translate-x-1/2 text-xs font-medium">
+        <div
+          className={`absolute bottom-2 left-1/2 -translate-x-1/2 text-xs font-medium transition-colors duration-150 ${
+            position.y > 66.66 ? "text-black-900" : "text-gray-400 "
+          }`}
+        >
           Casual
         </div>
-        <div className="absolute top-1/2 left-2 text-xs font-medium -translate-y-1/2 transform -rotate-90 origin-center">
+        <div
+          className={`absolute top-35.5 right-62.5 text-xs font-medium -translate-y-1/2 transform -rotate-90 origin-center transition-colors duration-150 ${
+            position.x < 33.33 ? "text-gray-900" : "text-gray-400"
+          }`}
+        >
           Concise
         </div>
-        <div className="absolute top-1/2 right-2 text-xs font-medium -translate-y-1/2 transform rotate-90 origin-center">
+        <div
+          className={`absolute top-35.5 left-61.5 text-xs font-medium -translate-y-1/2 transform rotate-90 origin-center transition-colors duration-150 ${
+            position.x > 66.66 ? "text-gray-900" : "text-gray-400"
+          }`}
+        >
           Expanded
         </div>
 
