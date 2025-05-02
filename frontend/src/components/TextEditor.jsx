@@ -21,7 +21,7 @@ function TextEditor() {
         onChange={handleTextChange} // Call handleTextChange on input change
         placeholder="Type or paste your text here..."
         className="
-          w-full h-[300px] sm:h-[350px] md:h-[400px] 
+          w-full h-[300px] sm:h-[200px] md:h-[400px] 
           p-4 sm:p-6 bg-gray-50 
           border border-gray-300 rounded-lg shadow-lg 
           focus:outline-none focus:ring-2 focus:ring-blue-500 
