@@ -141,14 +141,14 @@ export default function ToneSlider() {
           Casual
         </div>
         <div
-          className={`absolute top-1/2 left-2 -translate-y-1/2 -rotate-90 text-xs font-medium ${
+          className={`absolute top-36 right-63 -translate-y-1/2 -rotate-90 text-xs font-medium ${
             position.x < 33.33 ? "text-gray-900" : "text-gray-400"
           }`}
         >
           Concise
         </div>
         <div
-          className={`absolute top-1/2 right-2 -translate-y-1/2 rotate-90 text-xs font-medium ${
+          className={`absolute top-36 left-62 -translate-y-1/2 rotate-90 text-xs font-medium ${
             position.x > 66.66 ? "text-gray-900" : "text-gray-400"
           }`}
         >
