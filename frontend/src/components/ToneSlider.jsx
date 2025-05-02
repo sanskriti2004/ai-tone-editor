@@ -4,23 +4,22 @@ import { AppContext } from "../context/AppProvider";
 
 export default function ToneSlider() {
   const gridRef = useRef(null);
+  const debounceTimerRef = useRef(null);
   const [position, setPosition] = useState({ x: 50, y: 50 });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [metrics, setMetrics] = useState(null);
-  const { setText, originalText } = useContext(AppContext);
-  const debounceTimerRef = useRef(null);
 
+  const { setText, originalText } = useContext(AppContext);
+
+  // Reset position and restore original text
   const handleReset = () => {
     setPosition({ x: 50, y: 50 });
     setMetrics(null);
-
-    // If there's original text, restore it
-    if (originalText) {
-      setText(originalText);
-    }
+    if (originalText) setText(originalText);
   };
 
+  // Move handle within grid
   const handleMove = (e) => {
     const rect = gridRef.current.getBoundingClientRect();
     const x = ((e.clientX - rect.left) / rect.width) * 100;
@@ -31,65 +30,40 @@ export default function ToneSlider() {
       y: Math.min(100, Math.max(0, y)),
     });
 
-    // Clear any existing debounce timer
-    if (debounceTimerRef.current) {
-      clearTimeout(debounceTimerRef.current);
-    }
+    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
 
-    // Set new debounce timer for automatic tone adjustment
     debounceTimerRef.current = setTimeout(() => {
       adjustTone();
     }, 500);
   };
 
+  // Manual trigger for tone change
   const handleToneChange = () => {
     adjustTone();
   };
 
-  // Function to call the backend API with two-dimensional tone data
+  // API call to adjust tone
   const adjustTone = async () => {
-    // Skip if no text to adjust
-    if (!originalText || originalText.trim() === "") {
-      return;
-    }
+    if (!originalText || originalText.trim() === "") return;
 
-    // Calculate formality level (0-100) - top is professional (0), bottom is casual (100)
-    const formalityLevel = Math.min(100, Math.max(0, position.y));
-
-    // Calculate verbosity level (0-100) - left is concise (0), right is expanded (100)
-    // Apply extra weighting to ensure extreme conciseness when near 0
+    let formalityLevel = Math.min(100, Math.max(0, position.y));
     let verbosityLevel = Math.min(100, Math.max(0, position.x));
-
-    // Apply more aggressive scaling to verbosity to ensure conciseness
-    if (verbosityLevel < 30) {
-      // Make low verbosity values even lower to enforce extreme conciseness
-      verbosityLevel = verbosityLevel * 0.5; // This makes 20% become 10%, etc.
-    }
+    if (verbosityLevel < 30) verbosityLevel *= 0.5;
 
     setLoading(true);
     setError("");
 
     try {
-      const response = await axios.post(
-        "http://localhost:3001/api/adjust-tone",
-        {
-          text: originalText,
-          formalityLevel,
-          verbosityLevel,
-        }
-      );
+      const res = await axios.post("http://localhost:3001/api/adjust-tone", {
+        text: originalText,
+        formalityLevel,
+        verbosityLevel,
+      });
 
-      // Update the text with the adjusted version
-      setText(response.data.result);
-
-      // Update metrics if available
-      if (response.data.metrics) {
-        setMetrics(response.data.metrics);
-      } else {
-        setMetrics(null);
-      }
+      setText(res.data.result);
+      setMetrics(res.data.metrics || null);
     } catch (err) {
-      console.error("Error adjusting tone:", err);
+      console.error("Tone adjustment failed:", err);
       setError(
         err.response?.data?.error || "Failed to adjust tone. Please try again."
       );
@@ -98,32 +72,27 @@ export default function ToneSlider() {
     }
   };
 
-  // Get the highlight class for cells based on proximity to position
+  // Highlight cell based on cursor proximity
   const getCellHighlight = (cellX, cellY) => {
-    // Map cell coordinates to percentage coordinates (center of cell)
     const cellCenterX = cellX * 33.33 + 16.67;
     const cellCenterY = cellY * 33.33 + 16.67;
 
-    // Calculate distance from position to cell center
     const distance = Math.sqrt(
       Math.pow(position.x - cellCenterX, 2) +
         Math.pow(position.y - cellCenterY, 2)
     );
 
-    // Return highlight class based on distance
-    if (distance < 20) return "bg-blue-100";
-    return "";
+    return distance < 20 ? "bg-blue-100" : "";
   };
 
   return (
-    <div className="flex flex-col items-center">
-      {/* Grid for tone slider */}
+    <div className="flex flex-col items-center w-full sm:w-auto">
+      {/* === Tone Grid === */}
       <div
         ref={gridRef}
-        className="relative w-72 h-72 bg-gray-100 grid grid-cols-3 grid-rows-3 border border-gray-300 rounded-sm"
+        className="relative w-64 h-64 sm:w-72 sm:h-72 bg-gray-100 grid grid-cols-3 grid-rows-3 border border-gray-300 rounded-sm"
         onMouseDown={(e) => {
-          handleMove(e); // Update position immediately on click
-
+          handleMove(e);
           const move = (e) => handleMove(e);
           const stop = () => {
             window.removeEventListener("mousemove", move);
@@ -133,53 +102,21 @@ export default function ToneSlider() {
           window.addEventListener("mouseup", stop);
         }}
       >
-        {/* Grid borders and cells */}
+        {/* === Grid Cells === */}
         <div className="absolute inset-0 grid grid-cols-3 grid-rows-3 border-t border-l border-gray-300 rounded-sm">
-          {/* Top row - Professional */}
-          <div
-            className={`border-r border-b border-gray-300 ${getCellHighlight(
-              0,
-              0
-            )}`}
-          ></div>
-          <div
-            className={`border-r border-b border-gray-300 ${getCellHighlight(
-              1,
-              0
-            )}`}
-          ></div>
-          <div
-            className={`border-b border-gray-300 ${getCellHighlight(2, 0)}`}
-          ></div>
-
-          {/* Middle row */}
-          <div
-            className={`border-r border-b border-gray-300 ${getCellHighlight(
-              0,
-              1
-            )}`}
-          ></div>
-          <div
-            className={`border-r border-b border-gray-300 ${getCellHighlight(
-              1,
-              1
-            )}`}
-          ></div>
-          <div
-            className={`border-b border-gray-300 ${getCellHighlight(2, 1)}`}
-          ></div>
-
-          {/* Bottom row - Casual */}
-          <div
-            className={`border-r border-gray-300 ${getCellHighlight(0, 2)}`}
-          ></div>
-          <div
-            className={`border-r border-gray-300 ${getCellHighlight(1, 2)}`}
-          ></div>
-          <div className={`${getCellHighlight(2, 2)}`}></div>
+          {[0, 1, 2].map((row) =>
+            [0, 1, 2].map((col) => (
+              <div
+                key={`${row}-${col}`}
+                className={`border-gray-300 ${col < 2 ? "border-r" : ""} ${
+                  row < 2 ? "border-b" : ""
+                } ${getCellHighlight(col, row)}`}
+              />
+            ))
+          )}
         </div>
 
-        {/* Circle representing tone adjustment */}
+        {/* === Draggable Handle === */}
         <div
           className="absolute z-10 w-5 h-5 bg-blue-500 border-2 border-white rounded-full shadow-md cursor-pointer"
           style={{
@@ -188,53 +125,54 @@ export default function ToneSlider() {
           }}
         />
 
-        {/* Labels */}
+        {/* === Grid Labels === */}
         <div
-          className={`absolute top-2 left-1/2 -translate-x-1/2 text-xs font-medium transition-colors duration-150 ${
-            position.y < 33.33 ? "text-gray-900" : "text-gray-400 "
+          className={`absolute top-2 left-1/2 -translate-x-1/2 text-xs font-medium ${
+            position.y < 33.33 ? "text-gray-900" : "text-gray-400"
           }`}
         >
           Professional
         </div>
         <div
-          className={`absolute bottom-2 left-1/2 -translate-x-1/2 text-xs font-medium transition-colors duration-150 ${
-            position.y > 66.66 ? "text-black-900" : "text-gray-400 "
+          className={`absolute bottom-2 left-1/2 -translate-x-1/2 text-xs font-medium ${
+            position.y > 66.66 ? "text-gray-900" : "text-gray-400"
           }`}
         >
           Casual
         </div>
         <div
-          className={`absolute top-35.5 right-62.5 text-xs font-medium -translate-y-1/2 transform -rotate-90 origin-center transition-colors duration-150 ${
+          className={`absolute top-1/2 left-2 -translate-y-1/2 -rotate-90 text-xs font-medium ${
             position.x < 33.33 ? "text-gray-900" : "text-gray-400"
           }`}
         >
           Concise
         </div>
         <div
-          className={`absolute top-35.5 left-61.5 text-xs font-medium -translate-y-1/2 transform rotate-90 origin-center transition-colors duration-150 ${
+          className={`absolute top-1/2 right-2 -translate-y-1/2 rotate-90 text-xs font-medium ${
             position.x > 66.66 ? "text-gray-900" : "text-gray-400"
           }`}
         >
           Expanded
         </div>
 
-        {/* Reset Button */}
+        {/* === Reset Button === */}
         <button
           onClick={handleReset}
           className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 p-2 rounded-full bg-white bg-opacity-80 hover:bg-opacity-100 shadow-sm"
+          aria-label="Reset tone"
         >
-          <img src="/reset.png" alt="reset" className="w-4 h-4" />
+          <img src="/reset.png" alt="Reset" className="w-4 h-4" />
         </button>
       </div>
 
-      {/* Tone coordinates debug (optional) */}
-      <div className="text-xs text-gray-500 mt-2">
-        Formality: {Math.round(position.y)}% (0% = Professional, 100% = Casual)
+      {/* === Slider Metrics (Debug Info) === */}
+      <div className="text-xs text-gray-500 mt-2 text-center">
+        Formality: {Math.round(position.y)}% (0 = Professional, 100 = Casual)
         <br />
-        Verbosity: {Math.round(position.x)}% (0% = Concise, 100% = Expanded)
+        Verbosity: {Math.round(position.x)}% (0 = Concise, 100 = Expanded)
       </div>
 
-      {/* Adjust Tone Button */}
+      {/* === Adjust Tone Button === */}
       <button
         onClick={handleToneChange}
         disabled={loading}
@@ -245,21 +183,21 @@ export default function ToneSlider() {
         {loading ? "Adjusting..." : "Adjust Tone"}
       </button>
 
-      {/* Error Message */}
-      {error && <div className="mt-4 text-red-500">{error}</div>}
+      {/* === Error Message === */}
+      {error && <div className="mt-4 text-red-500 text-sm">{error}</div>}
 
-      {/* Word Count Metrics */}
+      {/* === Word Count Metrics === */}
       {metrics && (
-        <div className="mt-3 p-3 bg-gray-50 rounded-md text-sm">
-          <div className="font-medium">Text Analysis:</div>
+        <div className="mt-3 p-3 bg-gray-50 rounded-md text-sm w-full max-w-xs">
+          <div className="font-medium mb-1">Text Analysis:</div>
           <div className="flex justify-between">
             <span>Original: {metrics.originalWordCount} words</span>
             <span>New: {metrics.resultWordCount} words</span>
           </div>
           <div
-            className={`text-${
+            className={`mt-1 font-medium text-${
               metrics.isMoreConcise ? "green" : "blue"
-            }-600 font-medium`}
+            }-600`}
           >
             {metrics.isMoreConcise
               ? `${Math.abs(metrics.percentageChange)}% more concise`
