@@ -3,6 +3,7 @@ const cors = require("cors");
 const axios = require("axios");
 const NodeCache = require("node-cache");
 require("dotenv").config();
+const serverless = require("serverless-http");
 
 const app = express();
 const PORT = process.env.PORT || 3001;
