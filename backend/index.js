@@ -7,10 +7,9 @@ require("dotenv").config();
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Cache setup with TTL of 2 hours
+// Cache to reduce API calls
 const toneCache = new NodeCache({ stdTTL: 7200 });
 
-// Middleware
 app.use(cors());
 app.use(express.json());
 
@@ -28,129 +27,58 @@ app.post("/api/adjust-tone", async (req, res) => {
     }
 
     const originalWordCount = text.trim().split(/\s+/).length;
-
-    // Compute target word count
-    let targetWordCount = originalWordCount;
-    if (verbosityLevel <= 20) {
-      targetWordCount = Math.ceil(
-        originalWordCount * (0.6 - verbosityLevel / 50)
-      );
-    } else if (verbosityLevel <= 40) {
-      targetWordCount = Math.ceil(
-        originalWordCount * (0.8 - (verbosityLevel - 20) / 100)
-      );
-    } else if (verbosityLevel <= 60) {
-      targetWordCount = Math.ceil(
-        originalWordCount * (0.9 + (verbosityLevel - 40) / 100)
-      );
-    } else if (verbosityLevel <= 80) {
-      targetWordCount = Math.ceil(
-        originalWordCount * (1.1 + (verbosityLevel - 60) / 100)
-      );
-    } else {
-      targetWordCount = Math.ceil(
-        originalWordCount * (1.3 + (verbosityLevel - 80) / 100)
-      );
-    }
-
+    const targetWordCount = calculateTargetWordCount(
+      originalWordCount,
+      verbosityLevel
+    );
     const cacheKey = `${text}_${formalityLevel}_${verbosityLevel}`;
+
     const cached = toneCache.get(cacheKey);
-    if (cached) {
-      return res.status(200).json({ result: cached });
-    }
+    if (cached) return res.status(200).json({ result: cached });
 
     const { formalityDesc, verbosityDesc } = getToneDescriptions(
       formalityLevel,
       verbosityLevel
     );
 
-    const prompt = `Rewrite the following text in a tone that is:
-- ${formalityDesc}
-- ${verbosityDesc}
-
-Guidelines:
-- If concise, reduce fluff and focus on brevity.
-- If expanded, elaborate key points and add details.
-- If formal, use proper grammar and professional tone.
-- If casual, write like you're speaking to a friend.
-
-Rewrite this:
-"${text}"
-`;
-
-    const response = await axios.post(
-      "https://api.mistral.ai/v1/chat/completions",
-      {
-        model: "mistral-small",
-        messages: [{ role: "user", content: prompt }],
-        temperature: 0.7,
-        max_tokens: 2000,
-      },
-      {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${process.env.MISTRAL_API_KEY}`,
-        },
-      }
+    const prompt = generatePrompt(
+      text,
+      formalityDesc,
+      verbosityDesc,
+      targetWordCount
     );
 
-    let result = response.data.choices[0].message.content.trim();
-    const resultWordCount = result.split(/\s+/).length;
-    const percentageChange =
-      ((resultWordCount - originalWordCount) / originalWordCount) * 100;
+    const response = await callMistral(prompt);
+    let result = response?.data?.choices[0]?.message?.content?.trim() || "";
 
-    if (verbosityLevel <= 30 && percentageChange > -20) {
-      try {
-        const retry = await axios.post(
-          "https://api.mistral.ai/v1/chat/completions",
-          {
-            model: "mistral-small",
-            messages: [
-              {
-                role: "user",
-                content: `Make this text very concise (under ${targetWordCount} words), preserving key meaning:
-"${result}"`,
-              },
-            ],
-            temperature: 0.5,
-            max_tokens: 2000,
-          },
-          {
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${process.env.MISTRAL_API_KEY}`,
-            },
-          }
-        );
-        result = retry.data.choices[0].message.content.trim();
-      } catch (e) {
-        console.error("Second pass error:", e.message);
-      }
+    // Retry shortening if verbose output exceeds limit in concise mode
+    if (verbosityLevel <= 30 && result.split(/\s+/).length > targetWordCount) {
+      result = await retryShorten(result, targetWordCount);
     }
 
     toneCache.set(cacheKey, result);
     res.status(200).json({ result });
   } catch (err) {
     console.error("Error:", err);
-    if (err.response && err.response.status === 429) {
+    if (err.response?.status === 429)
       return res.status(429).json({ error: "Rate limit exceeded." });
-    }
-    if (err.response && err.response.status === 401) {
+    if (err.response?.status === 401)
       return res.status(401).json({ error: "API key invalid or missing." });
-    }
     res.status(500).json({ error: "Internal server error." });
   }
 });
 
-// Clear cache for testing
+// Clear cache manually
 app.post("/api/clear-cache", (req, res) => {
   toneCache.flushAll();
   res.status(200).json({ message: "Cache cleared." });
 });
 
-// Helper
+// ========== Helpers ==========
+
+// Choose formality and verbosity descriptions based on slider levels
 function getToneDescriptions(formalityLevel, verbosityLevel) {
-  let formalityDesc =
+  const formalityDesc =
     formalityLevel <= 20
       ? "extremely formal"
       : formalityLevel <= 40
@@ -161,7 +89,7 @@ function getToneDescriptions(formalityLevel, verbosityLevel) {
       ? "casual"
       : "very casual";
 
-  let verbosityDesc =
+  const verbosityDesc =
     verbosityLevel <= 20
       ? "extremely concise"
       : verbosityLevel <= 40
@@ -175,6 +103,79 @@ function getToneDescriptions(formalityLevel, verbosityLevel) {
   return { formalityDesc, verbosityDesc };
 }
 
+// Calculate target word count based on verbosity level
+function calculateTargetWordCount(originalWordCount, verbosityLevel) {
+  if (verbosityLevel <= 20)
+    return Math.ceil(originalWordCount * (0.6 - verbosityLevel / 50));
+  if (verbosityLevel <= 40)
+    return Math.ceil(originalWordCount * (0.8 - (verbosityLevel - 20) / 100));
+  if (verbosityLevel <= 60)
+    return Math.ceil(originalWordCount * (0.9 + (verbosityLevel - 40) / 100));
+  if (verbosityLevel <= 80)
+    return Math.ceil(originalWordCount * (1.1 + (verbosityLevel - 60) / 100));
+  return Math.ceil(originalWordCount * (1.3 + (verbosityLevel - 80) / 100));
+}
+
+// Build prompt to send to Mistral
+function generatePrompt(text, formalityDesc, verbosityDesc, targetWordCount) {
+  return `Rewrite the following text with:
+- Tone: ${formalityDesc}
+- Verbosity: ${verbosityDesc}
+- Target word count: ${targetWordCount} words
+
+Guidelines:
+- If concise, cut filler, simplify sentences, and aim for brevity.
+- If expanded, add clarification and examples.
+- If formal, use professional vocabulary and tone.
+- If casual, use friendly and informal language.
+
+Text:
+"${text}"`;
+}
+
+// Call Mistral AI with prompt
+async function callMistral(prompt) {
+  return await axios.post(
+    "https://api.mistral.ai/v1/chat/completions",
+    {
+      model: "mistral-small",
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.7,
+      max_tokens: 2000,
+    },
+    {
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${process.env.MISTRAL_API_KEY}`,
+      },
+    }
+  );
+}
+
+// Retry shortening output if it's too long for concise mode
+async function retryShorten(text, targetWordCount) {
+  try {
+    const retryPrompt = `Rewrite this text to be under ${targetWordCount} words.
+Focus only on the essential message. Eliminate all extra detail and keep it brief.
+
+Text:
+"${text}"`;
+
+    const retry = await callMistral(retryPrompt);
+    let shorter = retry?.data?.choices[0]?.message?.content?.trim() || "";
+
+    if (shorter.split(/\s+/).length > targetWordCount) {
+      shorter =
+        shorter.split(/\s+/).slice(0, targetWordCount).join(" ") + "...";
+    }
+    return shorter;
+  } catch (err) {
+    console.error("Retry shorten error:", err.message);
+    return text;
+  }
+}
+
+// Start server
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
