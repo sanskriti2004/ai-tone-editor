@@ -4,6 +4,8 @@ This is an interactive **AI Tone Adjustment Tool** where users can edit text and
 
 🎥 **Reference Video:**  
 
+https://github.com/user-attachments/assets/db1afa35-26a2-4a3f-8901-5c270ddafb0f
+
 ---
 
 ## 🚀 Features
@@ -11,7 +13,7 @@ This is an interactive **AI Tone Adjustment Tool** where users can edit text and
 - 🎯 **Text Editor** – Editable field where users input their text.
 - 🧭 **2D Tone Slider** – Drag to adjust **formality (vertical)** and **verbosity (horizontal)**.
 - 🔁 **Undo/Redo** – Tracks and reverts tone changes seamlessly.
-- 🎛️ **Reset Button** – Quickly reset tone to the original.
+- 🎛️ **Reset Button** – The reset button in the middle quickly resets tone to the original.
 - ⚙️ **Mistral AI Integration** – Uses the Mistral small model for real-time tone adjustment.
 - 📱 **Responsive UI** – Clean and intuitive design with loading indicators.
 - ⚠️ **Error Handling** – Displays API/network issues gracefully.
