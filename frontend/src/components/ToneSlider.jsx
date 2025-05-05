@@ -55,7 +55,7 @@ export default function ToneSlider() {
 
     try {
       const res = await axios.post(
-        `${import.meta.env.VITE_API_URL}/api/adjust-tone`,
+        `${import.meta.env.VITE_API_URL}api/adjust-tone`,
         {
           text: originalText,
           formalityLevel,
