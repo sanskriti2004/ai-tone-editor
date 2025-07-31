@@ -1,4 +1,4 @@
-# ✨ AI Tone Editor Tool
+# AI Tone Editor Tool
 
 This is an interactive **AI Tone Adjustment Tool** where users can edit text and control its tone from formal to casual and concise to expanded using a 2D slider. The app integrates **Mistral AI** to process text tone and includes smooth undo/redo functionality.
 
@@ -8,26 +8,26 @@ https://github.com/user-attachments/assets/db1afa35-26a2-4a3f-8901-5c270ddafb0f
 
 ---
 
-## 🚀 Features
+## Features
 
-- 🎯 **Text Editor** – Editable field where users input their text.
-- 🧭 **2D Tone Slider** – Drag to adjust **formality (vertical)** and **verbosity (horizontal)**.
-- 🔁 **Undo/Redo** – Tracks and reverts tone changes seamlessly.
-- 🎛️ **Reset Button** – The reset button in the middle quickly resets tone to the original.
-- ⚙️ **Mistral AI Integration** – Uses the Mistral small model for real-time tone adjustment.
-- 📱 **Responsive UI** – Clean and intuitive design with loading indicators.
-- ⚠️ **Error Handling** – Displays API/network issues gracefully.
+-  **Text Editor** – Editable field where users input their text.
+-  **2D Tone Slider** – Drag to adjust **formality (vertical)** and **verbosity (horizontal)**.
+-  **Undo/Redo** – Tracks and reverts tone changes seamlessly.
+-  **Reset Button** – The reset button in the middle quickly resets tone to the original.
+-  **Mistral AI Integration** – Uses the Mistral small model for real-time tone adjustment.
+-  **Responsive UI** – Clean and intuitive design with loading indicators.
+-  **Error Handling** – Displays API/network issues gracefully.
 
 ---
 
-## 🧠 Technical Architecture
+##  Technical Architecture
 
-### 🖥️ Frontend
+###  Frontend
 - **Framework**: React
 - **Context API**: For managing global state (`AppContext`)
 - **UI/UX**: TailwindCSS, interactive drag-and-drop grid
 
-### ⚙️ Backend
+###  Backend
 - **Framework**: Express.js
 - **Purpose**: 
   - Proxy & secure Mistral API calls
@@ -36,7 +36,7 @@ https://github.com/user-attachments/assets/db1afa35-26a2-4a3f-8901-5c270ddafb0f
 
 ---
 
-## 🧬 State Management Approach
+##  State Management Approach
 
 - `originalText`: Stored in context to track the initial input.
 - `setText`: Updates current text from tone slider or editor.
@@ -45,7 +45,7 @@ https://github.com/user-attachments/assets/db1afa35-26a2-4a3f-8901-5c270ddafb0f
 
 ---
 
-## 🧯 Error Handling
+##  Error Handling
 
 - **API failures**: Displays a clear error message and disables repeat requests during failures.
 - **Edge cases**:
@@ -55,7 +55,7 @@ https://github.com/user-attachments/assets/db1afa35-26a2-4a3f-8901-5c270ddafb0f
 
 ---
 
-## 🔧 Setup Instructions
+##  Setup Instructions
 
 1. **Clone the repository**
    ```bash
@@ -106,14 +106,14 @@ Now, open your browser to view the application.
 
 ---
 
-## 🧪 Tradeoffs / Notes
+##  Tradeoffs / Notes
 
 * **Preset Buttons Omitted**: Per instructions, sliders replace the need for tone presets like "Executive" or "Educational".
 * **2D Grid** provides more expressive control over tone than a single slider.
 
 ---
 
-## 📂 Project Structure
+##  Project Structure
 
 ```
 /frontend
@@ -129,5 +129,3 @@ Now, open your browser to view the application.
 ```
 
 ---
-
-## 🙋‍♀️ Built with ❤️ by Sanskriti
